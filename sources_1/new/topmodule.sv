@@ -23,7 +23,7 @@
 module topmodule(
     input CLK100MHZ,
     input CPU_RESETN,
-    input [0:1] SW,
+    input [2:0] SW,
     input SW15,
     input UART_TXD_IN,
     output JA1,
@@ -32,33 +32,35 @@ module topmodule(
     output [3:0] VGA_B,
     output VGA_HS,
     output VGA_VS,
-    output LED16_B,
-    output CA, CB, CC, CD, CE, CF, CG,
-    output [7:0] AN
+    output LED16_B
+    //output CA, CB, CC, CD, CE, CF, CG,
+    //output [7:0] AN
     //output [7:0]LED
     );
     
     logic serial;
     
-    localparam H_SIZE = 10'd607;
-    localparam V_SIZE = 9'd455;
+    localparam H_SIZE = 607;
+    localparam V_SIZE = 455;
     
     logic hsync, vsync;
     logic CLK78M75HZ;
+    logic CLK25MHZ;
+    //logic pulse78M75HZ;
     logic [3:0] Red, Green, Blue;
-    logic vga_clk;
+    logic vga_stb;
     logic hs1, vs1, hs2, vs2;
-    logic [9:0] x, y;
-    logic [9:0] x1, y1, x2, y2;
+    logic [9:0] y, y1, x2, y2;
+    logic [10:0] x, x1;
     
     assign VGA_HS = hsync;
     assign VGA_VS = vsync;
     
      //generate a 25 MHz pixel strobe
-    logic [15:0] cnt;
-    logic pix_stb;
-    always @(posedge CLK100MHZ)
-        {pix_stb, cnt} <= cnt + 16'h4000;  // divide by 4: (2^16)/4 = 0x4000
+//    logic [3:0] cnt;
+//    logic clk_stb;
+//    always @(posedge CLK100MHZ)
+//        {clk_stb, cnt} <= cnt + 4'h4;  // divide by 4: (2^16)/4 = 0x4000
     
     assign JA1 = UART_TXD_IN;
     
@@ -69,23 +71,23 @@ module topmodule(
             vsync = vs1;
             x = x1;
             y = y1;
-            vga_clk = CLK78M75HZ;
+            vga_stb = CLK78M75HZ;
         end
         else begin
             hsync = hs2;
             vsync = vs2;
-            x = x2;
+            x = {1'b0, x2};
             y = y2;
-            vga_clk = pix_stb;
+            vga_stb = CLK25MHZ;
         end
     end
     
     logic [17:0] rgb ;
     logic loaded;
     assign LED16_B = loaded;
-    assign VGA_R[3:0] = rgb[17:14];
-    assign VGA_G[3:0] = rgb[11:8];
-    assign VGA_B[3:0] = rgb[5:2];
+//    assign VGA_R[3:0] = rgb[17:14];
+//    assign VGA_G[3:0] = rgb[11:8];
+//    assign VGA_B[3:0] = rgb[5:2];
 
     /*
     // image simulation
@@ -144,7 +146,7 @@ module topmodule(
     end*/
     
   
-//     // Four overlapping squares
+     // Four overlapping squares
 //    wire sq_a, sq_b, sq_c, sq_d;
 //    assign sq_a = ((x > 120) & (y >  40) & (x < 280) & (y < 200)) ? 1 : 0;
 //    assign sq_b = ((x > 200) & (y > 120) & (x < 360) & (y < 280)) ? 1 : 0;
@@ -159,11 +161,19 @@ module topmodule(
         .clk(CLK100MHZ),         // 1 bit Input: base clock (BRAM side A)
         .reset(~CPU_RESETN),       // 1 bit Input: reset
         .uart_rx(UART_TXD_IN),     // 1 bit Input: receive serial
-        .pixel_clk(vga_clk),   // 1 bit Input: pixel clock (BRAM side B)
-        .x(x),           // 10 bits Input: vga horizontal count
-        .y(y),           // 10 bits Input: vga vertical count
+        .pixel_clk(vga_stb),   // 1 bit Input: pixel clock
+        .h_count(x),           // 10 bits Input: vga horizontal count
+        .v_count(y),           // 10 bits Input: vga vertical count
         .raw_rgb(rgb),         // 18 bits Output: raw rgb pixel (6x3 bit colour data)
         .loaded(loaded)       // 1 bit Output: image stored
+    );
+    
+    image_editor instance_name(
+      .clk(CLK100MHZ),
+      .reset(~CPU_RESETN),
+      .control(SW[2:0]),
+      .raw_rgb(rgb),
+      .rgb({VGA_R, VGA_G, VGA_B})
     );
    
 //    uart #(.BAUD_RATE(1000000)) instance_name (
@@ -184,9 +194,10 @@ module topmodule(
         .clk_in100MHZ(CLK100MHZ),       // input clk_in100MHZ
         .reset(~CPU_RESETN),            // input reset
         .locked(),                      // output locked
-        .clk_out78M75HZ(CLK78M75HZ)   // output clk_out78M750HZ
-    );      
-    
+        .clk_out78M75HZ(CLK78M75HZ),   // output clk_out78M750HZ
+        .clk_out25MHZ(CLK25MHZ)     // output clk_out25MHZ
+    );
+     
     vga1024x768 vga_synch(
         .clk(CLK100MHZ),         // 1 bit Input: base clock
         .pix_stb(CLK78M75HZ),     // 1 bit Input: pixel clock strobe
@@ -203,7 +214,7 @@ module topmodule(
     
     vga640x480 vga2(
         .clk(CLK100MHZ),         // 1 bit Input: base clock
-        .pix_stb(pix_stb),     // 1 bit Input: pixel clock strobe
+        .pix_stb(CLK25MHZ),     // 1 bit Input: pixel clock strobe
         .reset(~CPU_RESETN),       // 1 bit Input: reset: restarts frame
         .hsync(hs2),       // 1 bit Output: horizontal sync
         .vsync(vs2),       // 1 bit Output: vertical sync
@@ -215,27 +226,27 @@ module topmodule(
         .y(y2)            // 10 bit Output: current pixel y position
     );
     
-    logic dispclk;
-    logic [31:0] display_bcd;
-    logic [4:0] bcd;
-    assign display_bcd = {27'd0, bcd};
+//    logic dispclk;
+//    logic [31:0] display_bcd;
+//    logic [4:0] bcd;
+//    assign display_bcd = {27'd0, bcd};
     
-    clock_divider #(.d(1000)) instance_name(
-        .clk_in(CLK100MHZ),
-        .reset(~CPU_RESETN),
-        .clk_out(dispclk)
-    );
+//    clock_divider #(.d(1000)) instance_name(
+//        .clk_in(CLK100MHZ),
+//        .reset(~CPU_RESETN),
+//        .clk_out(dispclk)
+//    );
         
-    bin2bcd #(.W(4)) instance_n (   // input width
-        .bin(VGA_R[3:0]),       // binary
-        .bcd(bcd)        // bcd {...,thousands,hundreds,tens,ones}
-    );
+//    bin2bcd #(.W(4)) instance_n (   // input width
+//        .bin(rgb[17:14]),       // binary
+//        .bcd(bcd)        // bcd {...,thousands,hundreds,tens,ones}
+//    );
     
-    segment7 display (
-    .clk(dispclk),
-    .reset(~CPU_RESETN),
-    .display_bcd(display_bcd),
-    .segments({AN[7:0], CA, CB, CC, CD, CE, CF, CG})
-    );
+//    segment7 display (
+//        .clk(dispclk),
+//        .reset(~CPU_RESETN),
+//        .display_bcd(display_bcd),
+//        .segments({AN[7:0], CA, CB, CC, CD, CE, CF, CG})
+//    );
             
 endmodule

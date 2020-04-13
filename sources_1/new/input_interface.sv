@@ -115,4 +115,5 @@ module input_interface #(parameter PIXELS = 276185) (
         .Rx_DV(rx_flag),
         .Rx_Byte(rx_byte[7:0])
     );
+    
 endmodule

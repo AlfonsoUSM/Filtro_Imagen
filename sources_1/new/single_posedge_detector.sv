@@ -50,21 +50,28 @@ module single_posedge_detector (
     output signal_edges
     );
     
-    logic DFF1, DFF2;
+    logic DFF1;//, DFF2;
     logic in_edge;
     
-    assign in_edge = (DFF1 & ~DFF2) ; // (DFF1 ^ DFF2)
+    //assign in_edge = (DFF1 & ~DFF2) ; // (DFF1 ^ DFF2)
     assign signal_edges = in_edge; 
     
     always_ff @(posedge clk) begin
         if ( reset == 1'b1) begin
             DFF1 <= 1'b0;
-            DFF2 <= 1'b0;
+            //DFF2 <= 1'b0;
         end
         else begin
             DFF1 <= in_signal;
-            DFF2 <= DFF1;
+            //DFF2 <= DFF1;
         end
+    end
+    
+    always_comb begin
+        if (DFF1 == 1'b0 && in_signal == 1'b1)
+            in_edge = 1'b1;
+        else
+            in_edge = 1'b0;
     end
     
 endmodule

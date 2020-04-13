@@ -85,22 +85,40 @@ module vga640x480(
 
     // animate: high for one tick at the end of the final active pixel line
     assign animate = ((v_count == VA_END - 1) & (h_count == LINE));
-
-    always @ (posedge clk) begin
+    
+    always @ (posedge pix_stb) begin
         if (reset) begin // reset to start of frame
             h_count <= 0;
             v_count <= 0;
         end
-        if (pix_stb) begin // once per pixel
+        else begin // once per pixel
             if (h_count == LINE) begin // end of line
                 h_count <= 0;
-                v_count <= v_count + 1;
+                if (v_count == SCREEN)  // end of screen
+                    v_count <= 0;
+                else
+                    v_count <= v_count + 1;
             end
             else 
                 h_count <= h_count + 1;
-            if (v_count == SCREEN)  // end of screen
-                v_count <= 0;
         end
     end
+    
+//    always @ (posedge clk) begin
+//        if (reset) begin // reset to start of frame
+//            h_count <= 0;
+//            v_count <= 0;
+//        end
+//        if (pix_stb) begin // once per pixel
+//            if (h_count == LINE) begin // end of line
+//                h_count <= 0;
+//                v_count <= v_count + 1;
+//            end
+//            else 
+//                h_count <= h_count + 1;
+//            if (v_count == SCREEN)  // end of screen
+//                v_count <= 0;
+//        end
+//    end
 endmodule
 

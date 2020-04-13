@@ -26,9 +26,9 @@
         .reset(),       // 1 bit Input: reset
         .uart_rx(),     // 1 bit Input: receive serial
         .pixel_clk(),   // 1 bit Input: vga pixel clock
-        .x(),           // 10 bits Input: vga horizontal count
-        .y(),           // 10 bits Input: vga vertical count
-        .raw_rgb(),         // 18 bits Output: raw rgb pixel (6x3 bit colour data)
+        .h_count(),     // 10 bits Input: vga horizontal count
+        .v_count(),     // 10 bits Input: vga vertical count
+        .raw_rgb(),     // 18 bits Output: raw rgb pixel (6x3 bit colour data)
         .loaded()       // 1 bit Output: image stored
     );
     
@@ -39,8 +39,8 @@ module PictureMemory #(parameter H_SIZE = 607, V_SIZE = 455) (
     input reset,
     input uart_rx,
     input pixel_clk,
-    input [9:0] x, 
-    input [9:0] y,
+    input [10:0] h_count, 
+    input [9:0] v_count,
     output [17:0] raw_rgb,
     output loaded
     );
@@ -73,8 +73,8 @@ module PictureMemory #(parameter H_SIZE = 607, V_SIZE = 455) (
        .clk(clk),          // 1 bit Input: clock signal
        .reset(reset),        // 1 bit Input: CPU reset signal
        .pixel_clk(pixel_clk),    // 1 bit Input: vga clok
-       .x(x),            // 10 bits Input: vga horizontal count
-       .y(y),            // 10 bits Input: vga vertical count
+       .h_count(h_count),            // 10 bits Input: vga horizontal count
+       .v_count(v_count),            // 10 bits Input: vga vertical count
        .r_data(r_data),       // 18 bits Output: bram read data
        .r_address(r_address),    // 19 bits Output: bram read address
        .raw_rgb(raw_rgb)       // 18 bits Output: raw rgb pixel (6 bits per color)
@@ -87,10 +87,10 @@ module PictureMemory #(parameter H_SIZE = 607, V_SIZE = 455) (
         .clka(clk),    // input wire clka
         .ena(1'b1),      // input wire ena
         .wea(wea),      // input wire [0 : 0] wea
-        .addra(w_address[18:0]),  // input wire [18 : 0] addra
+        .addra(w_address),  // input wire [18 : 0] addra
         .dina(w_data),    // input wire [17 : 0] dina
         // B side (R)
-        .clkb(clk),    // input wire clkb
+        .clkb(pixel_clk),    // input wire clkb
         .enb(1'b1),      // input wire enb
         .addrb(r_address),  // input wire [18 : 0] addrb
         .doutb(r_data)  // output wire [17 : 0] doutb
