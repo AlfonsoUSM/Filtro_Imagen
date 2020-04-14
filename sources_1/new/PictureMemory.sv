@@ -28,6 +28,7 @@
         .pixel_clk(),   // 1 bit Input: vga pixel clock
         .h_count(),     // 10 bits Input: vga horizontal count
         .v_count(),     // 10 bits Input: vga vertical count
+        .synch_pulse(),  //1 bit Output: image start of line synchronization pulse
         .raw_rgb(),     // 18 bits Output: raw rgb pixel (6x3 bit colour data)
         .loaded()       // 1 bit Output: image stored
     );
@@ -41,6 +42,7 @@ module PictureMemory #(parameter H_SIZE = 607, V_SIZE = 455) (
     input pixel_clk,
     input [10:0] h_count, 
     input [9:0] v_count,
+    output synch_pulse,
     output [17:0] raw_rgb,
     output loaded
     );
@@ -70,11 +72,11 @@ module PictureMemory #(parameter H_SIZE = 607, V_SIZE = 455) (
     logic [18:0] r_address;
     
     output_interface #(.H_SIZE(H_SIZE), .V_SIZE(V_SIZE)) bram_read_interface (
-       .clk(clk),          // 1 bit Input: clock signal
+       .clk(pixel_clk),          // 1 bit Input: vga pixel clock signal
        .reset(reset),        // 1 bit Input: CPU reset signal
-       .pixel_clk(pixel_clk),    // 1 bit Input: vga clok
        .h_count(h_count),            // 10 bits Input: vga horizontal count
        .v_count(v_count),            // 10 bits Input: vga vertical count
+       .synch_pulse(synch_pulse),  //1 bit Output: image start of line synchronization pulse
        .r_data(r_data),       // 18 bits Output: bram read data
        .r_address(r_address),    // 19 bits Output: bram read address
        .raw_rgb(raw_rgb)       // 18 bits Output: raw rgb pixel (6 bits per color)
